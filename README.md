@@ -1,4 +1,5 @@
-Usage:
+A reproducible analysis pipeline for aerobic predictions
+
 
 Grab JSON data from bacdive's API. This first step untested contemporaneously but script not changed significantly since 20220201.
 ```
