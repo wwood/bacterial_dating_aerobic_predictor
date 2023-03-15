@@ -26,7 +26,7 @@ Parse the JSON into a TSV. Also removes "obligate" from the oxytolerance annotat
 $ ./2_parse_bacdive_scrape.py --input-json data/bacdive_scrape_20230315.json >data/bacdive_scrape_20230315.json.parsed.csv
 ```
 
-Consolidate annotations from each strain together into a single 2-class system - (anaerobic) or (aerobic, microaerophilic, facultative, ..)
+Consolidate annotations from each strain together into a single 2-class system - (anaerobic) or (aerobic, microaerophilic, facultative, ..). NOTE: This step (and the one below) are not reproducible because they involve sorting by randomly generated numbers.
 ```
 $ ./3_consolidate_parsed.py --input-csv data/bacdive_scrape_20230315.json.parsed.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.csv --class-mapping data/anaerobe_vs_rest.mapping
 ```
@@ -45,5 +45,5 @@ $ ./4_add_cyanos.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerob
 Integrate manually curation respiration gene info
 
 ```
-
+$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.apply_respiration_genes.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt
 ```
