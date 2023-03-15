@@ -1,0 +1,10 @@
+class,member
+anaerobe,anaerobe
+anaerobe,obligate anaerobe
+aerobe,aerobe
+aerobe,obligate aerobe
+exclude,microaerophile
+exclude,facultative anaerobe
+exclude,facultative aerobe
+exclude,aerotolerant
+exclude,microaerotolerant
