@@ -97,7 +97,12 @@ if __name__ == '__main__':
             if m not in class_mapping:
                 logging.error("Found class {} not in class mapping".format(c))
                 raise Exception("Found class {} not in class mapping".format(c))
-            classes.add(class_mapping[m])
+            elif class_mapping[m] == 'exclude':
+                # Entirely exclude this species, not just this annotation
+                logging.debug("Found exclude class for members: {}".format(members))
+                return None
+            else:
+                classes.add(class_mapping[m])
         if len(classes) > 1:
             logging.debug("Found multiple classes for members: {}".format(members))
             return None
@@ -105,10 +110,10 @@ if __name__ == '__main__':
             return list(classes)[0]
     m3["Oxygen tolerance"] = [map_classes_def(c) for c in m3["Oxygen tolerance raw"]]
 
-    # Remove any rows with multiple classes
+    # Remove any rows with multiple classes / or that are excluded
     m4 = m3[m3["Oxygen tolerance"].notnull()]
     num_multiple_classes = len(m3) - len(m4)
-    logging.info("Found {} rows with multiple classes, and {} rows with a single class".format(num_multiple_classes, len(m4)))
+    logging.info("Found {} rows with multiple classes or were excluded, and {} rows with a single class".format(num_multiple_classes, len(m4)))
     if args.multi_class_output_csv is not None:
         # Write out the multiple class rows
         m3[m3["Oxygen tolerance"].isnull()].to_csv(args.multi_class_output_csv, sep="\t", index=False)
