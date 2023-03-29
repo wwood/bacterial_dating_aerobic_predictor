@@ -78,16 +78,41 @@ if __name__ == '__main__':
     df2 = df.join(respiration_genes4, on='accession', how='left')
     logging.info("Summary of respiration gene annotations in dataset: {}".format(df2.groupby(['oxytolerance','has_respiration_genes']).count().sort('oxytolerance')))
 
-    # Write out the dataframe
-    df2.write_csv(args.output_csv, sep="\t")
+    # Either set as aerobic or exclude those with respiration genes
+    if args.set_as_aerobic:
+        df3 = df2.select(
+            pl.col('accession'),
+            pl.when(
+                pl.col('has_respiration_genes') == True).
+                then('aerobe').
+                otherwise(pl.col('oxytolerance')).alias('oxytolerance')
+        )
+    else:
+        df3 = df2.filter(
+            pl.any([
+                pl.col('oxytolerance') == 'aerobe',
+                pl.col('has_respiration_genes') == False]))
+    logging.info("Summary of respiration gene annotations in dataset after filtering: {}".format(df3.groupby(['oxytolerance']).count().sort('oxytolerance')))
 
-    # Why do so many anaerobic genomes contain positive calls?
-    df3 = df2.join(respiration_genes.select([
-        pl.col('Genome').alias('accession'),
-        pl.col('*')
-    ]), on='accession', how='left')
-    anaerobes = df3.filter(pl.col('oxytolerance') == 'anaerobe')
-    anaerobes2 = anaerobes.filter(pl.col('has_respiration_genes') == True)
-    anaerobes3 = anaerobes2.melt(id_vars=['accession', 'oxytolerance', 'has_respiration_genes','Genome'], value_name='count')
-    anaerobes4 = anaerobes3.filter(pl.col('count') > 0).groupby('variable').count()
-    anaerobes4.write_csv('anaerobes_with_respiration_genes.csv', sep="\t")
+    # Write out the dataframe
+    df3.select(['accession','oxytolerance']).write_csv(args.output_csv, sep="\t")
+
+    # # Why do so many anaerobic genomes contain positive calls?
+    # df3 = df2.join(respiration_genes.select([
+    #     pl.col('Genome').alias('accession'),
+    #     pl.col('*')
+    # ]), on='accession', how='left')
+    # anaerobes = df3.filter(pl.col('oxytolerance') == 'anaerobe')
+    # anaerobes2 = anaerobes.filter(pl.col('has_respiration_genes') == True)
+    # anaerobes3 = anaerobes2.melt(id_vars=['accession', 'oxytolerance', 'has_respiration_genes','Genome'], value_name='count')
+    # anaerobes4 = anaerobes3.filter(pl.col('count') > 0).groupby('variable').count()
+    # anaerobes4.write_csv('debug/respiration_genes_in_anaerobes.csv', sep="\t")
+
+    # # Write out all annotations
+    # respiration_genes_again = pl.read_csv(args.respiration_genes, sep="\t")
+    # df3.join(
+    #     respiration_genes_again.select([
+    #         pl.col('Genome').alias('accession'),
+    #         pl.col('Taxonomy')
+    #     ]), on='accession', how='left').write_csv('debug/respiration_genes_all_annotations.csv', sep="\t")
+

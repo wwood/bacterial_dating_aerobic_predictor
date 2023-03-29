@@ -42,8 +42,19 @@ $ ./4_add_cyanos.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerob
 $ ./4_add_cyanos.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --cyano-species data/manual_cyano_annotations3.tsv
 ```
 
-Integrate manually curation respiration gene info
+Integrate manually curated respiration gene info
 
 ```
-$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.apply_respiration_genes.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt
+$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.apply_respiration_gene_exclusion.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt
+
+$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.apply_respiration_gene_set_aerobic.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt --set-as-aerobic
+
+$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_exclusion.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt
+
+$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_set_aerobic.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt --set-as-aerobic
+```
+
+So now we have 6 datasets. To do family-wise GroupKFold validation, we exclude >=20% of the data from training, where no family is both in the training and test sets:
+```
+$ ./6_split_families.py -i data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.csv --training-families data/training_families.txt --testing-families data/testing_families.txt
 ```
