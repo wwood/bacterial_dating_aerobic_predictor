@@ -1,0 +1,6 @@
+bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.csv
+bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv
+bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.apply_respiration_gene_exclusion.csv
+bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.apply_respiration_gene_set_aerobic.csv
+bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_exclusion.csv
+bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_set_aerobic.csv
