@@ -92,8 +92,12 @@ Generate a master list of all genomes in all datasets with their annotations
 $ ./8_gather_genome_annotations.py -i `cat data/dataset_files.txt |sed s=^=data/=` -o data/all_gene_annotations.tsv --eggnog-mapper-annotations-key data/eggnog_mapper_annotation_paths.tsv --kegg-best-hits-annotations-key data/kegg_best_hits_key
 ```
 
-Generate incompleteness and contamination for each of the genomes in each dataset
+Generate incompleteness and contamination for all genomes in all datasets
 ```
-$ cat data/dataset_files.txt |parallel ./9_generate_incompleteness_contamination.py -i data/{} -o data/{}.incompleteness_contamination.csv
+$ ./9_expand_incompletenss_and_contamination4.py --input-file data/all_gene_annotations.tsv --output-file data/all_gene_annotations.added_incompleteness_and_contamination.tsv
 ```
 
+Split out training and test datasets based on their families chosen randomly above
+```
+$ ./10_split_training_test_sets.py --input-file data/all_gene_annotations.added_incompleteness_and_contamination.tsv --training-families data/training_families.txt --testing-families data/testing_families.txt --output-training data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv --output-testing data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv
+```
