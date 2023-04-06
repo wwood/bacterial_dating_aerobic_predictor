@@ -1,2 +1,10 @@
 private_credentials.py
 env
+data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv
+data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv
+data/all_gene_annotations.added_incompleteness_and_contamination.tsv
+debug
+genomes
+kegg_annotations
+proteomes
+7_process_kegg_hmmsearch.py.log
