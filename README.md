@@ -101,3 +101,8 @@ Split out training and test datasets based on their families chosen randomly abo
 ```
 $ ./10_split_training_test_sets.py --input-file data/all_gene_annotations.added_incompleteness_and_contamination.tsv --training-families data/training_families.txt --testing-families data/testing_families.txt --output-training data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv --output-testing data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv
 ```
+
+Do the actual training and testing
+```
+$ ./11_generate_models.py --training-file data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv --testing-file data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv -y data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --output-dir data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv.models
+```
