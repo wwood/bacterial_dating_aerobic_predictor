@@ -104,5 +104,15 @@ $ ./10_split_training_test_sets.py --input-file data/all_gene_annotations.added_
 
 Do the actual training and testing
 ```
-$ ./11_generate_models.py --training-file data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv --testing-file data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv -y data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --output-dir data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv.models
+$ cat data/dataset_files.txt |parallel -j1 ./11_generate_models.py --training-file data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv --testing-file data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv -y data/{} --model-output-dir data/{}.models --cross-validation-data-output-dir data/{}.cv_data
+```
+
+Inspect results of training according to cross validation - run this and then inspect the ipynb file.
+```
+$ jupyter nbconvert --execute 12_inspect_cross_validation.ipynb --to notebook --inplace
+```
+
+Apply the predictor against the ancestral state predictions
+```
+$ cat data/dataset_files.txt |parallel -j1 ./13_apply_model.py --model data/{}.models/*.model -x data/TableAncestralRoot1.tsv --training-data-header data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv --output-predictions data/{}.predictions.csv
 ```

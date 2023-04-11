@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--quiet', help='only output errors', action="store_true")
 
     # ./12_apply_model.py --model the.model -x the.x --training-data-header <(head the.training-data-header)
-    parent_parser.add_argument('--model', help='model to use', required=True)
+    parent_parser.add_argument('--models', nargs='+', help='models to use', required=True)
     parent_parser.add_argument('-x', help='table of inputs to use', required=True)
     parent_parser.add_argument('--training-data-header', help='header of training data', required=True)
     parent_parser.add_argument('--output-predictions', help='output predictions', required=True)
@@ -52,9 +52,6 @@ if __name__ == '__main__':
     d3 = d2.groupby('COG').sum()
     d4 = d3.transpose()
 
-    # Read in model
-    model = load(args.model)
-
     # Read training data header
     eg_data = pl.read_csv(args.training_data_header, separator="\t", has_header=True)
     header = eg_data.select(pl.exclude([
@@ -66,12 +63,33 @@ if __name__ == '__main__':
     # Reorder columns to be the same as the training dataset
     d5 = d4[header]
 
-    preds = model.predict(d5)
+    all_results = []
+    for model_path in args.models:
+        logging.info("Loading model {}".format(model_path))
+        model = load(model_path)
+        logging.info("Loaded model {}".format(model_path))
 
-    results = pd.DataFrame({
-        'node': d4.index.values,
-        'preds': preds,
-    })
-    results.to_csv(args.output_predictions, index=False, sep="\t", header=True)
-    logging.info("Wrote {} predictions to {}".format(len(preds), args.output_predictions))
+        doing_perceptron = 'Perceptron' in model_path
+
+        preds = model.predict(d5)
+        if doing_perceptron:
+            probas = pl.lit(-1.0)
+        else:
+            probas = model.predict_proba(d5)[:,1]
+
+        results = pl.DataFrame({
+            'node': list(d5.index.values),
+            'preds': preds,
+            'proba': -1
+        })
+        results = results.select(
+            pl.col('node'),
+            pl.col('preds').alias('prediction').cast(pl.Int64),
+            pl.col('proba').alias('probability').cast(pl.Float64),
+            pl.lit(model_path).alias('model')
+        )
+        all_results.append(results)
+
+    pl.concat(all_results).write_csv(args.output_predictions, separator="\t")
+    logging.info("Wrote predictions to {}".format(args.output_predictions))
     
