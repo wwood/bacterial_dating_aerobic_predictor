@@ -17,6 +17,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression,Perceptron
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.pipeline import make_pipeline
+from sklearn.calibration import CalibratedClassifierCV
 
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
@@ -30,6 +31,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--model-output-dir', help='output directory', required=True)
     parent_parser.add_argument('--cross-validation-data-output-dir', help='output directory', required=True)
     parent_parser.add_argument('-y', help='oxytolerance annotations', required=True)
+    parent_parser.add_argument('--add-calibrated-models', help='add calibrated models', action="store_true")
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -48,7 +50,8 @@ if __name__ == '__main__':
         os.makedirs(args.cross_validation_data_output_dir)
 
     # Read y
-    y1 = pl.read_csv(args.y, separator="\t")
+    y0 = pl.read_csv(args.y, separator="\t")
+    y1 = y0.unique() # There are some duplicates in the cyanos, so dedup
     logging.info("Read y: %s", y1.shape)
     # Log counts of each class
     logging.info("Counts of each class amongst unique accessions: %s", y1.groupby("oxytolerance").agg(pl.count()))
@@ -116,18 +119,25 @@ if __name__ == '__main__':
         MaxAbsScaler(),
         classifier
         ) for classifier in classifiers]
-
+    
+    # Add calibrated models
+    names_and_pipes = []
+    for (name, pipe) in zip(classifiers_names, pipes):
+        names_and_pipes.append((name, pipe))
+        if args.add_calibrated_models:
+            names_and_pipes.append((name + "_Isotonic", CalibratedClassifierCV(pipe, cv=5, method='isotonic')))
+            names_and_pipes.append((name + "_Sigmoid", CalibratedClassifierCV(pipe, cv=5, method='sigmoid')))
 
     gkf = GroupKFold(n_splits=5)
     for i, (train, test) in enumerate(gkf.split(X, y, groups=groups)):
-        for model, model_name in zip(pipes, classifiers_names):
+        for (model_name, model) in names_and_pipes:
             logging.info("Fold %i, Training model %s .." % (i, model_name))
             model.fit(X.iloc[train], y.iloc[train, 0])
             y_pred = model.predict(X.iloc[test])
             
-            y_actual = y.iloc[test, 0]
+            y_actual = y.iloc[test, 0].values
 
-            if model_name == "Perceptron":
+            if "Perceptron" in model_name:
                 # Perception doesn't have predict_proba
                 df1 = pd.DataFrame(y_pred, columns=['prediction'])
             else:
@@ -139,7 +149,6 @@ if __name__ == '__main__':
                 df1['prediction'] = y_pred
 
             df1['accession'] = d_gtdb.loc[test, 'accession'].values
-            # df1['y_actual'] = y_actual.array
             df1['y_actual'] = y_actual
             df1['false_negative_rate'] = d_gtdb.loc[test, 'false_negative_rate'].values
             df1['false_positive_rate'] = d_gtdb.loc[test, 'false_positive_rate'].values
@@ -158,7 +167,6 @@ if __name__ == '__main__':
 
     # Generate final predictors that include no cross-validation removal of samples
     logging.info("Creating final predictor")
-    # results = {}
     for model, model_name in zip(pipes, classifiers_names):
         logging.info("Creating non-cross-validation predictor for {}".format(model_name))
         model.fit(X, y.iloc[:, 0])
