@@ -72,22 +72,25 @@ if __name__ == '__main__':
         doing_perceptron = 'Perceptron' in model_path
 
         preds = model.predict(d5)
-        if doing_perceptron:
-            probas = pl.lit(-1.0)
-        else:
-            probas = model.predict_proba(d5)[:,1]
+        # if doing_perceptron:
+        #     probas = pl.lit(-1.0)
+        # else:
+        #     probas = model.predict_proba(d5)[:,1]
 
         results = pl.DataFrame({
             'node': list(d5.index.values),
-            'preds': preds,
-            'proba': -1
+            'preds': preds
         })
         results = results.select(
             pl.col('node'),
             pl.col('preds').alias('prediction').cast(pl.Int64),
-            pl.col('proba').alias('probability').cast(pl.Float64),
+            # pl.col('proba').alias('probability').cast(pl.Float64),
             pl.lit(model_path).alias('model')
         )
+        if doing_perceptron:
+            results = results.with_columns(pl.lit(-1.0).alias('probability').cast(pl.Float64))
+        else:
+            results = results.with_columns(pl.lit(model.predict_proba(d5)[:,1]).alias('probability').cast(pl.Float64))
         all_results.append(results)
 
     pl.concat(all_results).write_csv(args.output_predictions, separator="\t")
