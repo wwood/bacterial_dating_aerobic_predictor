@@ -79,7 +79,15 @@ if __name__ == '__main__':
     logging.info("Counts of each class in training/test data: %s", d3.groupby("oxytolerance").agg(pl.count()))
 
     X = d3.select(pl.exclude(['accession','oxytolerance','phylum','class','order','family','genus','false_negative_rate','false_positive_rate'])).to_pandas()
-    y = d3.select(pl.when(pl.col('oxytolerance')== 'aerobe').then(1).otherwise(0)).to_pandas()
+    # y = d3.select(pl.col('oxytolerance').map({
+    #     'anaerobe': 0,
+    #     'aerobe': 1,
+    #     'anaerobic_with_respiration_genes': 2,
+    # }))
+    # y = d3.select(pl.col('oxytolerance')
+    logging.info("y: %s", y.col('V1').value_counts())
+    y = y.to_pandas()
+    
     groups = d3['family'].to_list()
 
     d_gtdb = d3.to_pandas()

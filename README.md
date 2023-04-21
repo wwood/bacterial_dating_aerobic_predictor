@@ -51,7 +51,7 @@ $ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.p
 
 $ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_exclusion.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt
 
-$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_set_aerobic.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt --set-as-aerobic
+$ ./5_apply_respiration_genes.py --input-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.csv --output-csv data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_new_class.csv --respiration-genes data/aerobic_repiration_by_species_in_gtdb_r202_final.txt --set-as-new-class
 ```
 
 So now we have 6 datasets. To do family-wise GroupKFold validation, we exclude >=20% of the data from training, where no family is both in the training and test sets:
@@ -68,6 +68,7 @@ $ echo \
    bacdive_scrape_20230315.json.parsed.anaerobe_vs_aerobe.with_cyanos.apply_respiration_gene_set_aerobic.csv \
    bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_exclusion.csv \
    bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_set_aerobic.csv \
+   bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.apply_respiration_gene_new_class.csv \
    |sed 's/ /\n/g' \
     >data/dataset_files.txt
 $ cat data/dataset_files.txt |parallel ls data/{} -1 # Should not fail
@@ -97,6 +98,11 @@ Generate incompleteness and contamination for all genomes in all datasets
 $ ./9_expand_incompletenss_and_contamination4.py --input-file data/all_gene_annotations.tsv --output-file data/all_gene_annotations.added_incompleteness_and_contamination.tsv
 ```
 
+Generate espeically low completeness and contamination datasets
+```
+$ ./9_expand_incompletenss_and_contamination4.py --low-completeness --input-file data/all_gene_annotations.tsv --output-file data/all_gene_annotations.added_very_low_completeness_and_contamination.tsv
+```
+
 Split out training and test datasets based on their families chosen randomly above
 ```
 $ ./10_split_training_test_sets.py --input-file data/all_gene_annotations.added_incompleteness_and_contamination.tsv --training-families data/training_families.txt --testing-families data/testing_families.txt --output-training data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv --output-testing data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv
@@ -115,4 +121,9 @@ $ jupyter nbconvert --execute 12_inspect_cross_validation.ipynb --to notebook --
 Apply the predictor against the ancestral state predictions
 ```
 $ cat data/dataset_files.txt |parallel -j1 ./13_apply_model.py --model data/{}.models/*.model -x data/TableAncestralRoot1.tsv --training-data-header data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv --output-predictions data/{}.predictions.csv
+```
+
+Determine SHAP values for the models
+```
+jupyter nbconvert --execute 15_inspect_shap_values.ipynb --to notebook --inplace
 ```
