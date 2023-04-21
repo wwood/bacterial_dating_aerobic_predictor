@@ -32,6 +32,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--cross-validation-data-output-dir', help='output directory', required=True)
     parent_parser.add_argument('-y', help='oxytolerance annotations', required=True)
     parent_parser.add_argument('--add-calibrated-models', help='add calibrated models', action="store_true")
+    parent_parser.add_argument('--pipelines', nargs='+', help='Use these models only')
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -79,13 +80,21 @@ if __name__ == '__main__':
     logging.info("Counts of each class in training/test data: %s", d3.groupby("oxytolerance").agg(pl.count()))
 
     X = d3.select(pl.exclude(['accession','oxytolerance','phylum','class','order','family','genus','false_negative_rate','false_positive_rate'])).to_pandas()
-    # y = d3.select(pl.col('oxytolerance').map({
-    #     'anaerobe': 0,
-    #     'aerobe': 1,
-    #     'anaerobic_with_respiration_genes': 2,
-    # }))
-    # y = d3.select(pl.col('oxytolerance')
-    logging.info("y: %s", y.col('V1').value_counts())
+    # Map oxytolerance to 0, 1, 2
+    if 'anaerobic_with_respiration_genes' in d3['oxytolerance'].to_list():
+        classes_map = {
+            'anaerobe': 0,
+            'aerobe': 1,
+            'anaerobic_with_respiration_genes': 2,
+        }
+    else:
+        classes_map = {
+            'anaerobe': 0,
+            'aerobe': 1,
+        }
+
+    y = d3.select(pl.col('oxytolerance').apply(lambda x: classes_map[x]).alias('oxytolerance'))
+    logging.info("Counts of y: %s", y.groupby("oxytolerance").agg(pl.count()))
     y = y.to_pandas()
     
     groups = d3['family'].to_list()
@@ -131,10 +140,12 @@ if __name__ == '__main__':
     # Add calibrated models
     names_and_pipes = []
     for (name, pipe) in zip(classifiers_names, pipes):
-        names_and_pipes.append((name, pipe))
+        if args.pipelines is None or name in args.pipelines:
+            names_and_pipes.append((name, pipe))
         if args.add_calibrated_models:
             names_and_pipes.append((name + "_Isotonic", CalibratedClassifierCV(pipe, cv=5, method='isotonic')))
             names_and_pipes.append((name + "_Sigmoid", CalibratedClassifierCV(pipe, cv=5, method='sigmoid')))
+    logging.info("Using these pipelines: {}".format([np[0] for np in names_and_pipes]))
 
     gkf = GroupKFold(n_splits=5)
     for i, (train, test) in enumerate(gkf.split(X, y, groups=groups)):
@@ -152,7 +163,7 @@ if __name__ == '__main__':
                 pp = model.predict_proba(X.iloc[test])
                 df1 = pd.DataFrame(
                     pp,
-                    columns=['prob_anaerobe', 'prob_aerobe'],
+                    columns=[f"probability_{classes_map[k]}" for k in classes_map.keys()],
                 )
                 df1['prediction'] = y_pred
 
@@ -175,7 +186,7 @@ if __name__ == '__main__':
 
     # Generate final predictors that include no cross-validation removal of samples
     logging.info("Creating final predictor")
-    for model, model_name in zip(pipes, classifiers_names):
+    for (model_name, model) in names_and_pipes:
         logging.info("Creating non-cross-validation predictor for {}".format(model_name))
         model.fit(X, y.iloc[:, 0])
 
