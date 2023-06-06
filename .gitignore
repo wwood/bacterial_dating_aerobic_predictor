@@ -8,3 +8,6 @@ genomes
 kegg_annotations
 proteomes
 7_process_kegg_hmmsearch.py.log
+data/
+11_generate_models.py.log
+11_generate_models.py.log_calibrated
