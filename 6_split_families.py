@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
- 
+
 import argparse
 import logging
-import os
 import polars as pl
 import random
 
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument('--debug', help='output debug information', action="store_true")
-    #parent_parser.add_argument('--version', help='output version information and quit',  action='version', version=repeatm.__version__)
+    # parent_parser.add_argument('--version', help='output version information and quit',  action='version', version=repeatm.__version__)
     parent_parser.add_argument('--quiet', help='only output errors', action="store_true")
 
     # $ ./6_split_families.py -i data/bacdive_scrape_20230315.json.parsed.anaerobe_vs_rest.with_cyanos.csv --training-families data/training_families.txt --testing-families data/testing_families.txt
-    parent_parser.add_argument('-i','--input-csv', required=True)
+    parent_parser.add_argument('-i', '--input-csv', required=True)
     parent_parser.add_argument('--training-families', required=True)
     parent_parser.add_argument('--testing-families', required=True)
+    parent_parser.add_argument('--not-only-gtdb-reps', action="store_true")
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -27,13 +27,15 @@ if __name__ == '__main__':
         loglevel = logging.INFO
     logging.basicConfig(level=loglevel, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
-    df = pl.concat([
-        pl.read_csv('data/bac120_metadata_r202.tsv', sep="\t"),
-        pl.read_csv('data/ar122_metadata_r202.tsv', sep="\t")
-    ])
+    df = pl.concat(
+        [pl.read_csv('data/bac120_metadata_r202.tsv', separator="\t"),
+         pl.read_csv('data/ar122_metadata_r202.tsv', separator="\t")])
 
-    df = df.filter(pl.col("gtdb_representative") == "t")
-    logging.info("Read in {} GTDB reps".format(len(df)))
+    if not args.not_only_gtdb_reps:
+        df = df.filter(pl.col("gtdb_representative") == "t")
+        logging.info("Read in {} GTDB reps".format(len(df)))
+    else:
+        logging.info("Read in {} GTDB genomes (reps or not)".format(len(df)))
     # df["phylum"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[1])
     # df["class"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[2])
     # df["order"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[3])
@@ -42,7 +44,7 @@ if __name__ == '__main__':
     # df["sp"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[6])
 
     # Read input tsv
-    data = pl.read_csv(args.input_csv, sep="\t")
+    data = pl.read_csv(args.input_csv, separator="\t")
     d = data.join(df, on="accession", how="left")
 
     testing_families = set()
