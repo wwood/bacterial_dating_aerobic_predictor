@@ -53,7 +53,7 @@ if __name__ == '__main__':
     df = df[df["ncbi_taxonomy"] != ""]
 
     df['ncbi_taxonomy2'] = [x for x in df["ncbi_taxonomy"].apply(lambda x:x.split(";")[6][3:])]
-    # Choose original type species, if there are more than one.
+    # Choose original type species, if there are more than one i.e. exclude E. coli_B
     r = re.compile('.* .*_[A-Z]+$')
     df['is_original_species'] = [r.match(x) is None for x in df['sp']]
     df_original = df[df['is_original_species'] == True]

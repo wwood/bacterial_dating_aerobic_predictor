@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-from sklearn.model_selection import GroupKFold, cross_val_score
+from sklearn.model_selection import GroupKFold
 from xgboost import XGBClassifier
 import polars as pl
 import pandas as pd
-import numpy as np
 from joblib import dump
 import argparse
 import logging
@@ -12,10 +11,9 @@ import os
 
 from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier,GradientBoostingClassifier,AdaBoostClassifier,ExtraTreesClassifier
-from sklearn.preprocessing import StandardScaler,MaxAbsScaler
+from sklearn.preprocessing import MaxAbsScaler
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression,Perceptron
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.pipeline import make_pipeline
 from sklearn.calibration import CalibratedClassifierCV
 
@@ -30,9 +28,12 @@ if __name__ == '__main__':
     parent_parser.add_argument('--testing-file', help='testing file e.g. completeness_removed_contamination_added_testing_data.csv', required=True)
     parent_parser.add_argument('--model-output-dir', help='output directory', required=True)
     parent_parser.add_argument('--cross-validation-data-output-dir', help='output directory', required=True)
-    parent_parser.add_argument('-y', help='oxytolerance annotations', required=True)
+    parent_parser.add_argument('-y', help='annotations to train/predict on', required=True)
     parent_parser.add_argument('--add-calibrated-models', help='add calibrated models', action="store_true")
     parent_parser.add_argument('--pipelines', nargs='+', help='Use these models only')
+    # set target column name and levels
+    parent_parser.add_argument('--target-column', help='target column name', default='oxytolerance')
+    parent_parser.add_argument('--target-levels', nargs='+', help='target levels')
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -50,12 +51,14 @@ if __name__ == '__main__':
     if not os.path.exists(args.cross_validation_data_output_dir):
         os.makedirs(args.cross_validation_data_output_dir)
 
+    target_column = args.target_column
+
     # Read y
     y0 = pl.read_csv(args.y, separator="\t")
     y1 = y0.unique() # There are some duplicates in the cyanos, so dedup
     logging.info("Read y: %s", y1.shape)
     # Log counts of each class
-    logging.info("Counts of each class amongst unique accessions: %s", y1.groupby("oxytolerance").agg(pl.count()))
+    logging.info("Counts of each class amongst unique accessions: %s", y1.groupby(target_column).agg(pl.count()))
 
     # Read GTDB
     gtdb = pl.concat([
@@ -77,24 +80,27 @@ if __name__ == '__main__':
     # Ignore all but training data
     d2 = d.join(gtdb.select(['accession','phylum','class','order','family','genus']), on="accession", how="left")
     d3 = d2.join(y1, on="accession", how="inner") # Inner join because test accessions are in y1 but not in d2
-    logging.info("Counts of each class in training/test data: %s", d3.groupby("oxytolerance").agg(pl.count()))
+    logging.info("Counts of each class in training/test data: %s", d3.groupby(target_column).agg(pl.count()))
 
-    X = d3.select(pl.exclude(['accession','oxytolerance','phylum','class','order','family','genus','false_negative_rate','false_positive_rate'])).to_pandas()
+    X = d3.select(pl.exclude(['accession',target_column,'phylum','class','order','family','genus','false_negative_rate','false_positive_rate'])).to_pandas()
     # Map oxytolerance to 0, 1, 2
-    if 'anaerobic_with_respiration_genes' in d3['oxytolerance'].to_list():
-        classes_map = {
-            'anaerobe': 0,
-            'aerobe': 1,
-            'anaerobic_with_respiration_genes': 2,
-        }
+    if args.target_levels:
+        classes_map = {k: i for i, k in enumerate(args.target_levels)}
     else:
-        classes_map = {
-            'anaerobe': 0,
-            'aerobe': 1,
-        }
+        if 'anaerobic_with_respiration_genes' in d3['oxytolerance'].to_list():
+            classes_map = {
+                'anaerobe': 0,
+                'aerobe': 1,
+                'anaerobic_with_respiration_genes': 2,
+            }
+        else:
+            classes_map = {
+                'anaerobe': 0,
+                'aerobe': 1,
+            }
 
-    y = d3.select(pl.col('oxytolerance').apply(lambda x: classes_map[x]).alias('oxytolerance'))
-    logging.info("Counts of y: %s", y.groupby("oxytolerance").agg(pl.count()))
+    y = d3.select(pl.col(target_column).apply(lambda x: classes_map[x]).alias(target_column))
+    logging.info("Counts of y: %s", y.groupby(target_column).agg(pl.count()))
     y = y.to_pandas()
     
     groups = d3['family'].to_list()
@@ -104,7 +110,6 @@ if __name__ == '__main__':
     # Blacklist these as they aren't in the current ancestral file, not sure why
     X = X.drop(['COG0411', 'COG0459', 'COG0564', 'COG1344', 'COG4177'],axis=1)
 
-    #bunch of semi random classifiers from sklearn 
     n_jobs=64
     classifiers = [
         LogisticRegression(max_iter=1000,n_jobs=n_jobs),
