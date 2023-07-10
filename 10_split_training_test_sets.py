@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # df["phylum"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[1])
     # df["class"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[2])
     # df["order"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[3])
-    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').arr.get(4).alias("family"))
+    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').list.get(4).alias("family"))
 
     # Read testing and training families
     with open(args.testing_families) as f:

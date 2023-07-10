@@ -67,11 +67,11 @@ if __name__ == '__main__':
     ])
     gtdb = gtdb.filter(pl.col("gtdb_representative") == "t")
     logging.info("Read in {} GTDB reps".format(len(gtdb)))
-    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').arr.get(1).alias("phylum"))
-    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').arr.get(2).alias("class"))
-    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').arr.get(3).alias("order"))
-    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').arr.get(4).alias("family"))
-    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').arr.get(5).alias("genus"))
+    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').list.get(1).alias("phylum"))
+    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').list.get(2).alias("class"))
+    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').list.get(3).alias("order"))
+    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').list.get(4).alias("family"))
+    gtdb = gtdb.with_columns(pl.col("gtdb_taxonomy").str.split(';').list.get(5).alias("genus"))
 
     # Read training data
     d = pl.read_csv(args.training_file,separator="\t")
