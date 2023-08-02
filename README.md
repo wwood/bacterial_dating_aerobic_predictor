@@ -1,4 +1,4 @@
-A reproducible analysis pipeline for aerobic predictions
+Robust machine learning-based prediction of whether a microorganism is aerobic or anaerobic.
 
 First setup conda env
 ```
