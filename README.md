@@ -104,7 +104,7 @@ Generate incompleteness and contamination for all genomes in all datasets
 $ ./9_expand_incompletenss_and_contamination4.py --input-file data/all_gene_annotations.tsv --output-file data/all_gene_annotations.added_incompleteness_and_contamination.tsv
 ```
 
-Generate espeically low completeness and contamination datasets
+Generate especially low completeness and contamination datasets
 ```
 $ ./9_expand_incompletenss_and_contamination4.py --low-completeness --input-file data/all_gene_annotations.tsv --output-file data/all_gene_annotations.added_very_low_completeness_and_contamination.tsv
 ```
