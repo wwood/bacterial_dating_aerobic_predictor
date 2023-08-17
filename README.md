@@ -1,5 +1,11 @@
 Robust machine learning-based prediction of whether a microorganism is aerobic or anaerobic.
 
+This predictor was used in this (currently pre-publication) manuscript, please cite it if appropriate:
+
+Davin, Adrian A., Ben J. Woodcroft, Rochelle M. Soo, Ranjani Murali, Dominik Schrempf, James Clark, Bastien Boussau et al. "An evolutionary timescale for Bacteria calibrated using the Great Oxidation Event." bioRxiv (2023): 2023-08. https://www.biorxiv.org/content/10.1101/2023.08.08.552427v1.full
+
+This repository details how the data was gathered and how the predictor was trained. The predictor itself is available at https://huggingface.co/wwood/aerobicity
+
 First setup conda env
 ```
 $ conda env create -f env.yml -p env
@@ -16,7 +22,7 @@ USERNAME='xxx@xxx'
 PASSWORD='xxxx'
 ```
 
-Then run the scrape
+Then run the scrape (do not include the `$` in the command):
 ```
 $ ./1_scrape_bacdive.py --output-json data/bacdive_scrape_20230315.json
 ```
