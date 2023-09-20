@@ -1,5 +1,5 @@
 private_credentials.py
-env
+bact-env
 data/all_gene_annotations.added_incompleteness_and_contamination.testing.tsv
 data/all_gene_annotations.added_incompleteness_and_contamination.training.tsv
 data/all_gene_annotations.added_incompleteness_and_contamination.tsv

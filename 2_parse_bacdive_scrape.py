@@ -3,6 +3,9 @@
 import argparse
 import logging
 import json
+"""
+Parsing BacDive information for temperature range. 
+"""
 
 def parse_from_species_block(input_json):
     #          "General": {
@@ -16,45 +19,74 @@ def parse_from_species_block(input_json):
 
     # Collect all data for each species from the genus
     name_to_bacdive_ids = {}
-    name_to_oxygen_tolerances = {}
+    name_to_temperature_range = {}
     for j in input_json:
         name = j["Name and taxonomic classification"]["species"]
         if name not in name_to_bacdive_ids:
             name_to_bacdive_ids[name] = []
-            name_to_oxygen_tolerances[name] = set()
+            name_to_temperature_range[name] = set()
 
-        if 'oxygen tolerance' in j['Physiology and metabolism']:
+<<<<<<< Updated upstream
+        if 'culture temp' in j['Culture and growth conditions']:
             tolerances = []
-            ot = j['Physiology and metabolism']['oxygen tolerance']
+            tempt = j['Culture and growth conditions']['culture temp']
+            if isinstance(tempt, dict):
+                if 'range' in tempt: # In some instances the range is not specied
+                    for temp in tempt['range'].split(','):
+                        tolerances.append(temp)
+            else:
+                for entry in tempt:
+                    if 'range' in entry: # In some instances the Temperature range is not specified
+                        for temp in entry['range'].split(','):
+                            tolerances.append(temp)
+            if tolerances != []:
+                # Only record BacDive IDs which are associated with data
+                name_to_bacdive_ids[name].append(str(j['General']['BacDive-ID']))
+                for temp in tolerances:
+                    name_to_temperature_range[name].add(temp.strip())
+=======
+        if 'temperature range' in j['Culture and growth conditions']:
+            tolerances = []
+            ot = j['Culture and growth conditions']['temperature range']
             if isinstance(ot, dict):
-                if 'oxygen tolerance' in ot: # In some instances the oxygen tolerance is not specied
-                    for o in ot['oxygen tolerance'].split(','):
+                if 'temperature range' in ot: # In some instances the temperature range is not specied
+                    for o in ot['temperature range'].split(','):
                         tolerances.append(o)
             else:
                 for entry in ot:
-                    if 'oxygen tolerance' in entry: # In some instances the oxygen tolerance is not specified e.g. Butyricimonas faecihominis
-                        for o in entry['oxygen tolerance'].split(','):
+                    if 'temperature range' in entry: # In some instances the temperature range is not specified e.g. Butyricimonas faecihominis
+                        for o in entry['temperature range'].split(','):
                             tolerances.append(o)
             if tolerances != []:
                 # Only record BacDive IDs which are associated with data
                 name_to_bacdive_ids[name].append(str(j['General']['BacDive-ID']))
                 for o in tolerances:
-                    name_to_oxygen_tolerances[name].add(o.strip())
+                    name_to_temperature_range[name].add(o.strip())
+>>>>>>> Stashed changes
 
 
     # Print per-species
     for name, bacdive_ids in name_to_bacdive_ids.items():
-        oxytolerances2 = set()
-        for ot in name_to_oxygen_tolerances[name]:
-            if ot == 'obligate aerobe':
-                oxytolerances2.add('aerobe')
-            elif ot == 'obligate anaerobe':
-                oxytolerances2.add('anaerobe')
-            # elif ot == 'microaerophile':
-            #     oxytolerances2.add('aerobe')
+<<<<<<< Updated upstream
+        tmptolerances = set()
+        for ot in name_to_temperature_range[name]:
+                tmptolerances.add(ot)
+        print('\t'.join([','.join(bacdive_ids), name, ','.join(tmptolerances), ','.join(name_to_temperature_range[name])]))
+=======
+        temperature_range = set()
+        for ot in name_to_temperature_range[name]:
+            if ot == 'mesophilic':
+                temperature_range.add('mesophilic')
+            elif ot == 'thermophilic':
+                temperature_range.add('thermophilic')
+            elif ot == 'psychrophilic':
+                temperature_range.add('psychrophilic')
+            elif ot == 'hyperthermophilic':
+                temperature_range.add('hyperthermophilic')
             else:
-                oxytolerances2.add(ot)
-        print('\t'.join([','.join(bacdive_ids), name, ','.join(oxytolerances2), ','.join(name_to_oxygen_tolerances[name])]))
+                temperature_range.add(ot)
+        print('\t'.join([','.join(bacdive_ids), name, ','.join(temperature_range), ','.join(name_to_temperature_range[name])]))
+>>>>>>> Stashed changes
 
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
@@ -77,8 +109,13 @@ if __name__ == '__main__':
     print('\t'.join([
         'BacDive-ID',
         'Species',
-        'Oxygen tolerance',
-        'Oxygen tolerance raw',
+<<<<<<< Updated upstream
+        'Temperature range',
+        'Temperature range raw',
+=======
+        'Temperature Range',
+        'Temperature Range raw',
+>>>>>>> Stashed changes
     ]))
 
     with open(args.input_json) as f:

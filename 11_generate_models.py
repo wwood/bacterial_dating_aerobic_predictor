@@ -17,6 +17,10 @@ from sklearn.linear_model import LogisticRegression,Perceptron
 from sklearn.pipeline import make_pipeline
 from sklearn.calibration import CalibratedClassifierCV
 
+"""
+Generate and train ML models based on temperature range predictions. 
+"""
+
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument('--debug', help='output debug information', action="store_true")
@@ -32,7 +36,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--add-calibrated-models', help='add calibrated models', action="store_true")
     parent_parser.add_argument('--pipelines', nargs='+', help='Use these models only')
     # set target column name and levels
-    parent_parser.add_argument('--target-column', help='target column name', default='oxytolerance')
+    parent_parser.add_argument('--target-column', help='target column name', default='temperaturerange')
     parent_parser.add_argument('--target-levels', nargs='+', help='target levels')
     args = parent_parser.parse_args()
 
@@ -87,16 +91,19 @@ if __name__ == '__main__':
     if args.target_levels:
         classes_map = {k: i for i, k in enumerate(args.target_levels)}
     else:
-        if 'anaerobic_with_respiration_genes' in d3['oxytolerance'].to_list():
+        if 'anaerobic_with_respiration_genes' in d3['temperaturerange'].to_list():
             classes_map = {
-                'anaerobe': 0,
-                'aerobe': 1,
-                'anaerobic_with_respiration_genes': 2,
+                'mesophilic': 0,
+                'hyperthermophilic': 1,
+                'thermophilic': 2,
+                'psychrophilic': 3,
             }
         else:
             classes_map = {
-                'anaerobe': 0,
-                'aerobe': 1,
+                'mesophilic': 0,
+                'hyperthermophilic': 1,
+                'thermophilic': 2,
+                'psychrophilic': 3,
             }
 
     y = d3.select(pl.col(target_column).apply(lambda x: classes_map[x]).alias(target_column))

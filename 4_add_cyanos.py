@@ -6,6 +6,12 @@ import polars as pl
 import re
 import random
 
+"""
+Adding cyanobacteria into output. 
+"""
+def replace_string(match):
+    return replacement_mapping[match.group(0)]
+
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument('--debug', help='output debug information', action="store_true")
@@ -30,21 +36,32 @@ if __name__ == '__main__':
     df = pl.read_csv(args.input_csv, separator="\t")
     logging.info("Read in {} rows".format(len(df)))
 
+
     # Read in cyano species
     if args.cyano_species:
         cyanos = pl.read_csv(args.cyano_species, separator="\t")
-        # Change aerobic to aerobe
-        cyanos2 = cyanos.select([
-            pl.col('accession'),
-            pl.col('oxytolerance').str.replace('aerobic', 'aerobe'),
-        ])
+
+        replacement_mapping = {
+            'thermophilic': 'psychrophilic',
+            'mesophilic': 'psychrophilic', 
+            'hyperthermophilic': 'psychrophilic'
+        }
+        
+        # pattern = '|'.join(re.escape(key) for key in replacement_mapping.keys())
+
+        # Convert the DataFrame to Pandas to perform the replacement
+        cyanos_pd = cyanos.to_pandas()
+        cyanos_pd['temperaturerange'] = cyanos_pd['temperaturerange'].replace(replacement_mapping, regex=True)
+        
+        # Convert the modified Pandas DataFrame back to Polars DataFrame
+        cyanos2 = pl.DataFrame(cyanos_pd)
         logging.info("Read in {} cyanos".format(len(cyanos2)))
 
         to_write = pl.concat(
             [
                 df.select([
                     pl.col('accession'),
-                    pl.col('Oxygen tolerance').alias('oxytolerance'),
+                    pl.col('Temperature range').alias('temperaturerange'),
                 ]),
                 cyanos2
             ],
@@ -52,11 +69,11 @@ if __name__ == '__main__':
     else:
         to_write = df.select([
             pl.col('accession'),
-            pl.col('Oxygen tolerance').alias('oxytolerance'),
+            pl.col('Temperature range').alias('temperaturerange'),
         ])
 
-    logging.info("Class counts in input: {}".format(df.groupby('Oxygen tolerance').count()))
-    logging.info("Class counts in output: {}".format(to_write.groupby('oxytolerance').count()))
+    logging.info("Class counts in input: {}".format(df.groupby('Temperature range').count()))
+    logging.info("Class counts in output: {}".format(to_write.groupby('temperaturerange').count()))
 
     # Write to TSV
     to_write.write_csv(args.output_csv, separator="\t")

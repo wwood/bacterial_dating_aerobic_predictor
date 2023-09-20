@@ -5,7 +5,9 @@ import logging
 import pandas as pd
 import re
 import random
-
+"""
+Consolidate Temperature Range Parsed.
+"""
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument('--debug', help='output debug information', action="store_true")
@@ -52,7 +54,7 @@ if __name__ == '__main__':
 
     df = df[df["ncbi_taxonomy"] != ""]
 
-    df['ncbi_taxonomy2'] = [x for x in df["ncbi_taxonomy"].apply(lambda x:x.split(";")[6][3:])]
+    df.loc[:, 'ncbi_taxonomy2'] = df["ncbi_taxonomy"].apply(lambda x: x.split(";")[6][3:])
     # Choose original type species, if there are more than one i.e. exclude E. coli_B
     r = re.compile('.* .*_[A-Z]+$')
     df['is_original_species'] = [r.match(x) is None for x in df['sp']]
@@ -61,25 +63,27 @@ if __name__ == '__main__':
 
     # Get best quality rep for each ncbi_taxonomy
     df = df.sort_values(by=["gtdb_type_species_of_genus","quality"], ascending=False)
-    df_best = df_original.groupby("ncbi_taxonomy2", as_index=False).first()
+    df_best = df_original.groupby("ncbi_taxonomy2").first().reset_index()
     logging.info("Found {} reps of best quality".format(len(df_best)))
     logging.debug("e.g. {}".format(df_best.iloc[0]))
     logging.debug("i.e. {}".format(df_best[['ncbi_taxonomy2','ncbi_taxonomy','gtdb_taxonomy','genus','sp','accession']].iloc[0]))
 
     bacdive = pd.read_csv(args.input_csv, sep="\t")
-    bacdive = bacdive[bacdive["Oxygen tolerance raw"] != ""]
+    bacdive = bacdive[bacdive["Temperature range raw"] != ""]
     logging.info("Read in {} rows of bacdive annotation".format(bacdive.shape[0]))
     logging.debug("e.g. {}".format(bacdive.iloc[0]))
 
     # Remove duplicates from BacDive.
-    bacdive = bacdive[[not pd.isna(a) for a in bacdive["Oxygen tolerance raw"]]]
+    bacdive = bacdive[[not pd.isna(a) for a in bacdive["Temperature range raw"]]]
     bacdive.drop_duplicates(inplace=True)
     logging.info("After removing duplicates, have {} bacdive entries".format(bacdive.shape[0]))
 
     merged = pd.merge(bacdive, df_best, right_on="ncbi_taxonomy2", left_on="Species")
     # print(merged.columns)
-    m2 = merged[['Species','gtdb_taxonomy','genus','sp','accession','gtdb_type_species_of_genus','Oxygen tolerance raw']]
-    m2.drop_duplicates(inplace=True)
+    m2 = merged[['Species','gtdb_taxonomy','genus','sp','accession','gtdb_type_species_of_genus','Temperature range raw']]
+    m2 = m2.drop_duplicates().reset_index(drop=True)
+    m2.reset_index(drop=True, inplace=True)  # Reset index after dropping duplicates
+
 
     # Remove some problem cases by hand. These are bacdive duplication data errors somehow? These two are both microaerophile and anaerobe, so not useful for us.
     m3 = m2[~(m2['Species'].isin(['Actinotignum schaalii','Microvirgula aerodenitrificans']))]
@@ -108,19 +112,28 @@ if __name__ == '__main__':
             return None
         else:
             return list(classes)[0]
-    m3["Oxygen tolerance"] = [map_classes_def(c) for c in m3["Oxygen tolerance raw"]]
+    temperature_range_series = m3["Temperature range raw"].apply(lambda c: map_classes_def(c))
+    m3 = m3.copy()  # Create a copy of the DataFrame
+    m3["Temperature range"] = temperature_range_series
 
     # Remove any rows with multiple classes / or that are excluded
-    m4 = m3[m3["Oxygen tolerance"].notnull()]
+    m4 = m3[m3["Temperature range"].notnull()]
     num_multiple_classes = len(m3) - len(m4)
     logging.info("Found {} rows with multiple classes or were excluded, and {} rows with a single class".format(num_multiple_classes, len(m4)))
     if args.multi_class_output_csv is not None:
         # Write out the multiple class rows
-        m3[m3["Oxygen tolerance"].isnull()].to_csv(args.multi_class_output_csv, sep="\t", index=False)
+        m3[m3["Temperature range"].isnull()].to_csv(args.multi_class_output_csv, sep="\t", index=False)
 
     # Only accept 3 species per GTDB genus. We want type species of the genus, plus at most 2 more
-    m4['random_id'] = [random.randint(0, len(m4)) for i in range(len(m4))]
-    m4.sort_values(by=["gtdb_type_species_of_genus","random_id"], inplace=True, ascending=False)
+    # m4['random_id'] = [random.randint(0, len(m4)) for i in range(len(m4))]
+    # m4.sort_values(by=["gtdb_type_species_of_genus","random_id"], inplace=True, ascending=False)
+    # genus_derep = m4.groupby('genus').head(3)
+
+    m4 = m4.copy()
+    random_ids = [random.randint(0, len(m4)) for _ in range(len(m4))]
+    m4['random_id'] = random_ids
+    m4.sort_values(by=["gtdb_type_species_of_genus", "random_id"], inplace=True, ascending=False)
+
     genus_derep = m4.groupby('genus').head(3)
 
     genus_derep.to_csv(args.output_csv, sep="\t", index=False)

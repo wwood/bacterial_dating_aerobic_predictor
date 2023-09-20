@@ -5,6 +5,9 @@ import logging
 import polars as pl
 import random
 
+"""
+Splitting and testing families. 
+"""
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument('--debug', help='output debug information', action="store_true")
@@ -39,7 +42,7 @@ if __name__ == '__main__':
     # df["phylum"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[1])
     # df["class"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[2])
     # df["order"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[3])
-    df = df.with_columns(pl.col("gtdb_taxonomy").str.split(';').arr.get(4).alias("family"))
+    df = df.with_columns(pl.col("gtdb_taxonomy").apply(lambda arr: arr.split(';')[4]).alias("family"))
     # df["genus"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[5])
     # df["sp"] = df["gtdb_taxonomy"].apply(lambda x: x.split(";")[6])
 

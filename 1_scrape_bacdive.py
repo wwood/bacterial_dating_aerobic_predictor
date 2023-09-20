@@ -11,6 +11,10 @@ import bacdive
 import json
 from tqdm import tqdm
 
+"""
+Script to scrape bacterial information from BacDive. 
+"""
+
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument('--debug', help='output debug information', action="store_true")
