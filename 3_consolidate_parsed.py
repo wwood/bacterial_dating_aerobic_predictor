@@ -16,6 +16,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--output-csv', required=True)
     parent_parser.add_argument('--class-mapping-file', required=True)
     parent_parser.add_argument('--multi-class-output-csv', help='output cases where 2+ classes are predicted')
+    parent_parser.add_argument('--output-all-annotations-csv', help='output all annotations, including those with multiple classes or excluded species')
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -109,6 +110,9 @@ if __name__ == '__main__':
         else:
             return list(classes)[0]
     m3["Oxygen tolerance"] = [map_classes_def(c) for c in m3["Oxygen tolerance raw"]]
+
+    if args.output_all_annotations_csv is not None:
+        m3.to_csv(args.output_all_annotations_csv, sep="\t", index=False)
 
     # Remove any rows with multiple classes / or that are excluded
     m4 = m3[m3["Oxygen tolerance"].notnull()]
