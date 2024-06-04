@@ -17,6 +17,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--class-mapping-file', required=True)
     parent_parser.add_argument('--multi-class-output-csv', help='output cases where 2+ classes are predicted')
     parent_parser.add_argument('--output-all-annotations-csv', help='output all annotations, including those with multiple classes or excluded species')
+    parent_parser.add_argument('--no-genus-limit', help='do not limit to 3 species per genus', action="store_true")
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -83,11 +84,23 @@ if __name__ == '__main__':
     m2.drop_duplicates(inplace=True)
 
     # Remove some problem cases by hand. These are bacdive duplication data errors somehow? These two are both microaerophile and anaerobe, so not useful for us.
-    m3 = m2[~(m2['Species'].isin(['Actinotignum schaalii','Microvirgula aerodenitrificans']))]
+    # │ Massilia aquatica         ┆ 2     │ # has a real entry, but another entry which has this name as a synonym
+    # │ Sphingomonas paucimobilis ┆ 2     │
+    # │ Photobacterium damselae   ┆ 2     │
+    # │ Gordonia sputi            ┆ 2     │
+    # Ignore these species, it is only a few.
+    m3 = m2[~(m2['Species'].isin(['Actinotignum schaalii','Microvirgula aerodenitrificans',
+    'Massilia aquatica',
+    'Sphingomonas paucimobilis',
+    'Photobacterium damselae',
+    'Gordonia sputi',
+    ]))]
 
     # Ensure there are no duplicate species in m3
     if len(m3.Species.unique()) != len(m3.Species):
         logging.error("Found duplicate species in m3")
+        # pl.DataFrame(m3).groupby('Species').count().filter(pl.col('count')>1)
+        # import IPython; IPython.embed()
         raise Exception("Found duplicate species in m3")
 
     # Map classes
@@ -125,6 +138,9 @@ if __name__ == '__main__':
     # Only accept 3 species per GTDB genus. We want type species of the genus, plus at most 2 more
     m4['random_id'] = [random.randint(0, len(m4)) for i in range(len(m4))]
     m4.sort_values(by=["gtdb_type_species_of_genus","random_id"], inplace=True, ascending=False)
-    genus_derep = m4.groupby('genus').head(3)
+    if args.no_genus_limit:
+        genus_derep = m4.groupby('genus').head(len(m4))
+    else:    
+        genus_derep = m4.groupby('genus').head(3)
 
     genus_derep.to_csv(args.output_csv, sep="\t", index=False)

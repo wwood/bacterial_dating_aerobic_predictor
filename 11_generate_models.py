@@ -34,6 +34,8 @@ if __name__ == '__main__':
     # set target column name and levels
     parent_parser.add_argument('--target-column', help='target column name', default='oxytolerance')
     parent_parser.add_argument('--target-levels', nargs='+', help='target levels')
+    parent_parser.add_argument('--threads', help='number of threads to use', default=64, type=int)
+    parent_parser.add_argument('--remove-random-y', help='remove a random entry from y, to simulate noise', action="store_true")
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -79,6 +81,14 @@ if __name__ == '__main__':
 
     # Ignore all but training data
     d2 = d.join(gtdb.select(['accession','phylum','class','order','family','genus']), on="accession", how="left")
+
+    if args.remove_random_y:
+        logging.info("Removing a random entry from y")
+        y_in_d2 = d2.join(y1, on="accession", how="inner").select(pl.col("accession").unique())
+        y_in_d2 = y_in_d2.sample(len(y_in_d2)-1)
+        y1 = y1.join(y_in_d2, on="accession", how="inner")
+        logging.info("After removing one random, counts of each class amongst unique accessions: %s", y1.groupby(target_column).agg(pl.count()))
+
     d3 = d2.join(y1, on="accession", how="inner") # Inner join because test accessions are in y1 but not in d2
     logging.info("Counts of each class in training/test data: %s", d3.groupby(target_column).agg(pl.count()))
 
@@ -110,7 +120,7 @@ if __name__ == '__main__':
     # Blacklist these as they aren't in the current ancestral file, not sure why
     X = X.drop(['COG0411', 'COG0459', 'COG0564', 'COG1344', 'COG4177'],axis=1)
 
-    n_jobs=64
+    n_jobs=args.threads
     classifiers = [
         LogisticRegression(max_iter=1000,n_jobs=n_jobs),
         RandomForestClassifier(n_jobs=n_jobs,n_estimators=1000),
