@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupKFold, StratifiedKFold
 from xgboost import XGBClassifier
 import polars as pl
 import pandas as pd
@@ -16,6 +16,9 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression,Perceptron
 from sklearn.pipeline import make_pipeline
 from sklearn.calibration import CalibratedClassifierCV
+
+from imblearn.under_sampling import RandomUnderSampler
+
 
 if __name__ == '__main__':
     parent_parser = argparse.ArgumentParser(add_help=False)
@@ -36,6 +39,7 @@ if __name__ == '__main__':
     parent_parser.add_argument('--target-levels', nargs='+', help='target levels')
     parent_parser.add_argument('--threads', help='number of threads to use', default=64, type=int)
     parent_parser.add_argument('--remove-random-y', help='remove a random entry from y, to simulate noise', action="store_true")
+    parent_parser.add_argument('--balanced', help='balance data (equal numbers in each group) before cross validation and final predictor creation', action="store_true")
     args = parent_parser.parse_args()
 
     # Setup logging
@@ -119,6 +123,20 @@ if __name__ == '__main__':
 
     # Blacklist these as they aren't in the current ancestral file, not sure why
     X = X.drop(['COG0411', 'COG0459', 'COG0564', 'COG1344', 'COG4177'],axis=1)
+
+    # Balance data by subsampling from the majority class
+    if args.balanced:
+        logging.info("Balancing data")
+        rus = RandomUnderSampler(random_state=0)
+        # Need to preserve groups, so encode that as a column in X (and remove
+        # it later). Could also do this through pandas index.
+        X['group'] = groups
+        X, y = rus.fit_resample(X, y)
+        from collections import Counter
+        logging.info("Counts of y after balancing: %s", Counter(y[target_column]))
+        # Extract groups
+        groups = X['group']
+        X = X.drop('group', axis=1)
 
     n_jobs=args.threads
     classifiers = [
