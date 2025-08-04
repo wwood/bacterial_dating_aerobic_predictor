@@ -2,7 +2,7 @@ Robust machine learning-based prediction of whether a microorganism is aerobic o
 
 This predictor was used in this (currently pre-publication) manuscript, please cite it if appropriate:
 
-Davin, Adrian A., Ben J. Woodcroft, Rochelle M. Soo, Ranjani Murali, Dominik Schrempf, James Clark, Bastien Boussau et al. "An evolutionary timescale for Bacteria calibrated using the Great Oxidation Event." bioRxiv (2023): 2023-08. https://www.biorxiv.org/content/10.1101/2023.08.08.552427v1.full
+Davín, Adrián A., Ben J. Woodcroft, Rochelle M. Soo, Benoit Morel, Ranjani Murali, Dominik Schrempf, James W. Clark et al. "A geological timescale for bacterial evolution and oxygen adaptation." _Science_ 388, no. 6742 (2025): eadp1853. https://dx.doi.org/10.1126/science.adp1853
 
 This repository details how the data was gathered and how the predictor was trained. The predictor itself is available at https://huggingface.co/wwood/aerobicity
 
